@@ -190,7 +190,7 @@ val elapsed = sessionDurationMinutes * 60 - remaining
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            Text("TIME REMAINING")
+            Text("TEST - NEW TIMER SCREEN")
 
             Text(
                 "%02d:%02d".format(
