@@ -11,7 +11,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
@@ -24,6 +23,17 @@ private data class ActivityOption(
     val name: String,
     val emoji: String,
     val minutes: Int
+)
+
+private data class TemperatureReading(
+    val temperature: Float,
+    val time: String
+)
+
+private data class SessionRecord(
+    val activity: String,
+    val duration: Int,
+    val temperatures: List<TemperatureReading>
 )
 
 private val activities = listOf(
@@ -46,54 +56,56 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun ThermaTrackScreen() {
-    val context = LocalContext.current
-    val preferences = remember {
-        context.getSharedPreferences("thermatrack", 0)
-    }
-
     var selected by remember { mutableStateOf(activities[0]) }
+    var sessionDurationMinutes by remember { mutableIntStateOf(15) }
+var durationInput by remember { mutableStateOf("15") }
+    var durationText by remember { mutableStateOf("15") }
+    var durationSeconds by remember { mutableIntStateOf(900) }
     var remaining by remember { mutableIntStateOf(900) }
     var running by remember { mutableStateOf(false) }
-    var temperature by remember { mutableStateOf("") }
-    var heartRate by remember { mutableStateOf("") }
+    var sessionStarted by remember { mutableStateOf(false) }
+    var finished by remember { mutableStateOf(false) }
 
-    val history = remember {
-        mutableStateListOf<String>().apply {
-            val saved = preferences.getString("history", "") ?: ""
-            if (saved.isNotEmpty()) addAll(saved.split("\n"))
-        }
+    var temperatureText by remember { mutableStateOf("") }
+    var temperatures by remember {
+        mutableStateOf(listOf<TemperatureReading>())
     }
 
-    LaunchedEffect(running, remaining) {
-        if (running && remaining > 0) {
+    var sessionHistory by remember {
+        mutableStateOf(listOf<SessionRecord>())
+    }
+
+    LaunchedEffect(running) {
+        while (running && remaining > 0) {
             delay(1000)
             remaining--
-        } else if (remaining == 0) {
+        }
+
+        if (remaining == 0) {
             running = false
         }
     }
 
-    fun saveSession() {
-        val elapsed = selected.minutes * 60 - remaining
-        val date = SimpleDateFormat(
-            "dd MMM yyyy, HH:mm",
-            Locale.getDefault()
-        ).format(Date())
-
-        val record = listOf(
-            selected.name,
-            date,
-            temperature.ifBlank { "Not recorded" },
-            heartRate.ifBlank { "Not recorded" },
-            "${elapsed / 60}m ${elapsed % 60}s"
-        ).joinToString("|")
-
-        history.add(0, record)
-        preferences.edit()
-            .putString("history", history.joinToString("\n"))
-            .apply()
-
+    fun resetSession() {
         running = false
+        sessionStarted = false
+        finished = false
+        remaining = durationSeconds
+        temperatures = emptyList()
+        temperatureText = ""
+    }
+
+    fun finishSession() {
+        running = false
+        sessionStarted = false
+        finished = true
+        
+val elapsed = sessionDurationMinutes * 60 - remaining
+        sessionHistory = sessionHistory + SessionRecord(
+            activity = selected.name,
+            duration = elapsed,
+            temperatures = temperatures
+        )
     }
 
     Surface(modifier = Modifier.fillMaxSize()) {
@@ -101,25 +113,32 @@ private fun ThermaTrackScreen() {
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(20.dp),
+                .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
                 "ThermaTrack",
                 style = MaterialTheme.typography.headlineLarge
             )
-            Text("Your personal wellness tracker")
 
-            Spacer(Modifier.height(24.dp))
+            Text("Your wellness session tracker")
+
+            Spacer(modifier = Modifier.height(24.dp))
+
             Text("CHOOSE YOUR ACTIVITY")
 
             activities.forEach { activity ->
-                Spacer(Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(8.dp))
+
                 Card(
                     onClick = {
-                        selected = activity
-                        remaining = activity.minutes * 60
-                        running = false
+                        if (!running && !sessionStarted) {
+                            selected = activity
+                            sessionDurationMinutes = activity.minutes
+                            durationText = activity.minutes.toString()
+                            durationSeconds = activity.minutes * 60
+                            resetSession()
+                        }
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -128,19 +147,50 @@ private fun ThermaTrackScreen() {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(activity.emoji)
-                        Spacer(Modifier.width(12.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
+
                         Text(
                             activity.name,
                             style = MaterialTheme.typography.titleMedium
                         )
-                        Spacer(Modifier.weight(1f))
+
+                        Spacer(modifier = Modifier.weight(1f))
+
                         Text("${activity.minutes} min")
                     }
                 }
             }
 
-            Spacer(Modifier.height(24.dp))
-            Text("TIME REMAINING")
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Text("SESSION LENGTH")
+
+            OutlinedTextField(
+                value = durationText,
+                onValueChange = { value ->
+                    if (value.all { it.isDigit() } && value.length <= 3) {
+                        durationText = value
+
+                        val minutes = value.toIntOrNull()
+                        if (minutes != null && minutes in 1..180) {
+                            durationSeconds = minutes * 60
+                            if (!sessionStarted) {
+                                remaining = durationSeconds
+                            }
+                        }
+                    }
+                },
+                label = { Text("Minutes") },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number
+                ),
+                enabled = !running,
+                singleLine = true
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text("TEST - NEW TIMER SCREEN")
 
             Text(
                 "%02d:%02d".format(
@@ -150,110 +200,198 @@ private fun ThermaTrackScreen() {
                 style = MaterialTheme.typography.displayLarge
             )
 
+            Spacer(modifier = Modifier.height(12.dp))
+Row(
+    modifier = Modifier.fillMaxWidth(),
+    horizontalArrangement = Arrangement.spacedBy(12.dp)
+) {
+    OutlinedButton(
+        onClick = {
+            durationSeconds = (durationSeconds - 60).coerceAtLeast(60)
+            remaining = durationSeconds
+        },
+        modifier = Modifier.weight(1f)
+    ) {
+        Text("- 1 min")
+    }
+
+    OutlinedButton(
+        onClick = {
+            durationSeconds += 60
+            remaining = durationSeconds
+        },
+        modifier = Modifier.weight(1f)
+    ) {
+        Text("+ 1 min")
+    }
+}
             Button(
-                onClick = { running = !running },
-                enabled = remaining > 0,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(if (running) "Pause" else "Start")
-            }
-
-            Spacer(Modifier.height(8.dp))
-
-            OutlinedButton(
                 onClick = {
-                    running = false
-                    remaining = selected.minutes * 60
+                    if (!running && remaining > 0) {
+                        running = true
+                        sessionStarted = true
+                        finished = false
+                    } else {
+                        running = false
+                    }
                 },
+                enabled = remaining > 0 && !finished,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Reset")
+                Text(
+                    when {
+                        running -> "Pause"
+                        sessionStarted -> "Resume"
+                        else -> "Start Timer"
+                    }
+                )
             }
 
-            Spacer(Modifier.height(24.dp))
-            HorizontalDivider()
-            Spacer(Modifier.height(16.dp))
+            
+OutlinedButton(
+    onClick = { resetSession() },
+    modifier = Modifier.fillMaxWidth()
+) {
+    Text("Reset")
+}
+
+            }
+
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 24.dp)
+            )
 
             Text(
-                "SESSION MEASUREMENTS",
+                "TEMPERATURE RECORDING",
                 style = MaterialTheme.typography.titleLarge
             )
 
-            Spacer(Modifier.height(12.dp))
+            Text("Record the temperature in °C throughout your session.")
 
             OutlinedTextField(
-                value = temperature,
-                onValueChange = { temperature = it },
+                value = temperatureText,
+                onValueChange = { temperatureText = it },
                 label = { Text("Temperature (°C)") },
+                placeholder = { Text("e.g. 85.5") },
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Decimal
                 ),
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
+                singleLine = true
             )
-
-            Spacer(Modifier.height(8.dp))
-
-            OutlinedTextField(
-                value = heartRate,
-                onValueChange = { heartRate = it },
-                label = { Text("Heart rate (BPM)") },
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Number
-                ),
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(Modifier.height(12.dp))
 
             Button(
-                onClick = { saveSession() },
-                enabled = !running,
+                onClick = {
+                    val value = temperatureText.toFloatOrNull()
+
+                    if (value != null && value in -20f..150f) {
+                        val time = SimpleDateFormat(
+                            "HH:mm",
+                            Locale.getDefault()
+                        ).format(Date())
+
+                        temperatures = temperatures + TemperatureReading(
+                            value,
+                            time
+                        )
+
+                        temperatureText = ""
+                    }
+                },
+                enabled = temperatureText.toFloatOrNull() != null &&
+                    !finished,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Finish & Save Session")
+                Text("Add Temperature Reading")
             }
 
-            Spacer(Modifier.height(24.dp))
-            HorizontalDivider()
-            Spacer(Modifier.height(16.dp))
+            temperatures.forEach { reading ->
+                Text(
+                    "${reading.temperature}°C  -  ${reading.time}",
+                    modifier = Modifier.padding(6.dp)
+                )
+            }
+
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 24.dp)
+            )
 
             Text(
-                "SESSION HISTORY",
+                "HEART RATE",
                 style = MaterialTheme.typography.titleLarge
             )
 
-            if (history.isEmpty()) {
-                Text("Your saved sessions will appear here.")
-            } else {
-                history.forEach { record ->
-                    val parts = record.split("|", limit = 5)
-                    if (parts.size == 5) {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp)
-                        ) {
-                            Column(Modifier.padding(12.dp)) {
+            Text(
+                "-- BPM",
+                style = MaterialTheme.typography.headlineMedium
+            )
+
+            Text("Pixel Watch connection not yet enabled")
+
+            if (finished) {
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = 24.dp)
+                )
+
+                Text(
+                    "SESSION COMPLETE",
+                    style = MaterialTheme.typography.titleLarge
+                )
+
+                Text("Activity: ${selected.name}")
+                Text(
+                    "Duration: ${
+                        (durationSeconds - remaining) / 60
+                    } min ${
+                        (durationSeconds - remaining) % 60
+                    } sec"
+                )
+
+                Text("Temperature readings: ${temperatures.size}")
+            }
+
+            if (sessionHistory.isNotEmpty()) {
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = 24.dp)
+                )
+
+                Text(
+                    "SESSION HISTORY",
+                    style = MaterialTheme.typography.titleLarge
+                )
+
+                sessionHistory.forEach { record ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text(
+                                record.activity,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+
+                            Text(
+                                "Duration: ${record.duration / 60} min " +
+                                    "${record.duration % 60} sec"
+                            )
+
+                            Text(
+                                "Temperature readings: " +
+                                    "${record.temperatures.size}"
+                            )
+
+                            record.temperatures.forEach { reading ->
                                 Text(
-                                    "${parts[0]} - ${parts[4]}",
-                                    style = MaterialTheme.typography.titleMedium
+                                    "${reading.temperature}°C at ${reading.time}"
                                 )
-                                Text(parts[1])
-                                Text("Temperature: ${parts[2]} °C")
-                                Text("Heart rate: ${parts[3]} BPM")
                             }
                         }
                     }
                 }
             }
 
-            Spacer(Modifier.height(24.dp))
-            Text(
-                "Heart rate and temperature are entered manually for now.",
-                style = MaterialTheme.typography.bodySmall
-            )
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
