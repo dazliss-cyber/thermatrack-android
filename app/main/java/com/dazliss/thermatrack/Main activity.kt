@@ -57,6 +57,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun ThermaTrackScreen() {
     var selected by remember { mutableStateOf(activities[0]) }
+    var sessionDurationMinutes by remember { mutableIntStateOf(15) }
+var durationInput by remember { mutableStateOf("15") }
     var durationText by remember { mutableStateOf("15") }
     var durationSeconds by remember { mutableIntStateOf(900) }
     var remaining by remember { mutableIntStateOf(900) }
@@ -97,9 +99,8 @@ private fun ThermaTrackScreen() {
         running = false
         sessionStarted = false
         finished = true
-
-        val elapsed = durationSeconds - remaining
-
+        
+val elapsed = sessionDurationMinutes * 60 - remaining
         sessionHistory = sessionHistory + SessionRecord(
             activity = selected.name,
             duration = elapsed,
