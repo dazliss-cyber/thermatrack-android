@@ -249,13 +249,11 @@ Row(
 
             
 OutlinedButton(
-    onClick = { resetSession(),
+    onClick = { resetSession() },
     modifier = Modifier.fillMaxWidth()
 ) {
     Text("Reset")
 }
-
-            }
 
             HorizontalDivider(
                 modifier = Modifier.padding(vertical = 24.dp)
