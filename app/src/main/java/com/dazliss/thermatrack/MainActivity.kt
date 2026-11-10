@@ -100,7 +100,7 @@ var durationInput by remember { mutableStateOf("15") }
         sessionStarted = false
         finished = true
         
-val elapsed = sessionDurationMinutes * 60 - remaining
+val elapsed = durationSeconds - remaining
         sessionHistory = sessionHistory + SessionRecord(
             activity = selected.name,
             duration = elapsed,
