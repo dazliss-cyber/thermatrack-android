@@ -184,7 +184,7 @@ val elapsed = sessionDurationMinutes * 60 - remaining
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Number
                 ),
-                enabled = !sessionStarted && !running,
+                enabled = !running,
                 singleLine = true
             )
 
