@@ -81,10 +81,18 @@ var durationInput by remember { mutableStateOf("15") }
             remaining--
         }
 
-     if (remaining == 0 && running) {
-    finishSession()
+if (remaining == 0 && running) {
+    running = false
+    sessionStarted = false
+    finished = true
+
+    val elapsed = durationSeconds - remaining
+    sessionHistory = sessionHistory + SessionRecord(
+        activity = selected.name,
+        duration = elapsed,
+        temperatures = temperatures
+    )
 }
-    }
 
     fun resetSession() {
         running = false
