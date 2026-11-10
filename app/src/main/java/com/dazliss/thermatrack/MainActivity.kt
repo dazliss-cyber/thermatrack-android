@@ -81,9 +81,9 @@ var durationInput by remember { mutableStateOf("15") }
             remaining--
         }
 
-        if (remaining == 0) {
-            running = false
-        }
+     if (remaining == 0 && running) {
+    finishSession()
+}
     }
 
     fun resetSession() {
