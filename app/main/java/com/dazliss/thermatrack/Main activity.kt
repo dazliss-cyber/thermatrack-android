@@ -134,6 +134,7 @@ val elapsed = sessionDurationMinutes * 60 - remaining
                     onClick = {
                         if (!running && !sessionStarted) {
                             selected = activity
+                            sessionDurationMinutes = activity.minutes
                             durationText = activity.minutes.toString()
                             durationSeconds = activity.minutes * 60
                             resetSession()
@@ -200,7 +201,30 @@ val elapsed = sessionDurationMinutes * 60 - remaining
             )
 
             Spacer(modifier = Modifier.height(12.dp))
+Row(
+    modifier = Modifier.fillMaxWidth(),
+    horizontalArrangement = Arrangement.spacedBy(12.dp)
+) {
+    OutlinedButton(
+        onClick = {
+            durationSeconds = (durationSeconds - 60).coerceAtLeast(60)
+            remaining = durationSeconds
+        },
+        modifier = Modifier.weight(1f)
+    ) {
+        Text("- 1 min")
+    }
 
+    OutlinedButton(
+        onClick = {
+            durationSeconds += 60
+            remaining = durationSeconds
+        },
+        modifier = Modifier.weight(1f)
+    ) {
+        Text("+ 1 min")
+    }
+}
             Button(
                 onClick = {
                     if (!running && remaining > 0) {
@@ -223,20 +247,7 @@ val elapsed = sessionDurationMinutes * 60 - remaining
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            OutlinedButton(
-                onClick = { finishSession() },
-                enabled = sessionStarted || running,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Finish Session")
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            OutlinedButton(
-                onClick = { resetSession() },
+            uh
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Reset")
