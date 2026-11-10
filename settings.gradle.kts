@@ -19,5 +19,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "ThermaTrack"
 
-include(":app")
+include(":app", ":wear")
 
