@@ -18,6 +18,8 @@ import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import android.media.RingtoneManager
+import androidx.compose.ui.platform.LocalContext
 
 private data class ActivityOption(
     val name: String,
@@ -56,6 +58,10 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun ThermaTrackScreen() {
+    val context = LocalContext.current
+val notificationUri = RingtoneManager.getDefaultUri(
+    RingtoneManager.TYPE_NOTIFICATION
+)
     var selected by remember { mutableStateOf(activities[0]) }
     var sessionDurationMinutes by remember { mutableIntStateOf(15) }
 var durationInput by remember { mutableStateOf("15") }
@@ -85,6 +91,8 @@ if (remaining == 0 && running) {
     running = false
     sessionStarted = false
     finished = true
+
+    RingtoneManager.getRingtone(context, notificationUri)?.play()
 
     val elapsed = durationSeconds - remaining
     sessionHistory = sessionHistory + SessionRecord(
@@ -362,47 +370,49 @@ OutlinedButton(
                 Text("Temperature readings: ${temperatures.size}")
             }
 
-            if (sessionHistory.isNotEmpty()) {
-                HorizontalDivider(
-                    modifier = Modifier.padding(vertical = 24.dp)
+            HorizontalDivider(
+    modifier = Modifier.padding(vertical = 24.dp)
+)
+
+Text(
+    "SESSION HISTORY",
+    style = MaterialTheme.typography.titleLarge
+)
+
+if (sessionHistory.isEmpty()) {
+    Text("No sessions recorded yet")
+} else {
+    sessionHistory.forEach { record ->
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text(
+                    record.activity,
+                    style = MaterialTheme.typography.titleMedium
                 )
 
                 Text(
-                    "SESSION HISTORY",
-                    style = MaterialTheme.typography.titleLarge
+                    "Duration: ${record.duration / 60} min " +
+                        "${record.duration % 60} sec"
                 )
 
-                sessionHistory.forEach { record ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Text(
-                                record.activity,
-                                style = MaterialTheme.typography.titleMedium
-                            )
+                Text(
+                    "Temperature readings: " +
+                        "${record.temperatures.size}"
+                )
 
-                            Text(
-                                "Duration: ${record.duration / 60} min " +
-                                    "${record.duration % 60} sec"
-                            )
-
-                            Text(
-                                "Temperature readings: " +
-                                    "${record.temperatures.size}"
-                            )
-
-                            record.temperatures.forEach { reading ->
-                                Text(
-                                    "${reading.temperature}°C at ${reading.time}"
-                                )
-                            }
-                        }
-                    }
+                record.temperatures.forEach { reading ->
+                    Text(
+                        "${reading.temperature}°C at ${reading.time}"
+                    )
                 }
             }
+        }
+    }
+}
 
             Spacer(modifier = Modifier.height(24.dp))
         }
