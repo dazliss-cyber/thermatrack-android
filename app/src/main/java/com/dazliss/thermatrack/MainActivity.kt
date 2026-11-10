@@ -263,7 +263,13 @@ OutlinedButton(
 ) {
     Text("Reset")
 }
-
+OutlinedButton(
+    onClick = { finishSession() },
+    enabled = sessionStarted && !finished,
+    modifier = Modifier.fillMaxWidth()
+) {
+    Text("End Session")
+}
             HorizontalDivider(
                 modifier = Modifier.padding(vertical = 24.dp)
             )
