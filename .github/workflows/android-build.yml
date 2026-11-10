@@ -27,5 +27,5 @@ jobs:
           gradle-version: "9.5.0"
 
       - name: Build Android app
-        run: gradle :app:assembleDebug
+        run: gradle :app:assembleDebug --stacktrace --info
         
