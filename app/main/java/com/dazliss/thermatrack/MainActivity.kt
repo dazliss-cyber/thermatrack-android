@@ -254,6 +254,7 @@ OutlinedButton(
 ) {
     Text("Reset")
 }
+}
 
             }
 
