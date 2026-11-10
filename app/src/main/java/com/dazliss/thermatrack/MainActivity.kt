@@ -90,8 +90,9 @@ if (remaining == 0 && running) {
     sessionHistory = sessionHistory + SessionRecord(
         activity = selected.name,
         duration = elapsed,
-        temperatures = temperatures
+                temperatures = temperatures
     )
+}
 }
 
     fun resetSession() {
