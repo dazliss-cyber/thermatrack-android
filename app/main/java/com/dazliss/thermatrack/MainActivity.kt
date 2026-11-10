@@ -254,9 +254,7 @@ OutlinedButton(
 ) {
     Text("Reset")
 }
-}
 
-            }
 
             HorizontalDivider(
                 modifier = Modifier.padding(vertical = 24.dp)
@@ -265,7 +263,7 @@ OutlinedButton(
             Text(
                 "TEMPERATURE RECORDING",
                 style = MaterialTheme.typography.titleLarge
-            )
+                }
 
             Text("Record the temperature in °C throughout your session.")
 
