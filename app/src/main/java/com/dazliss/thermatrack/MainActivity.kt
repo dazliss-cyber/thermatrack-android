@@ -249,7 +249,7 @@ Row(
 
             
 OutlinedButton(
-    onClick = { resetSession() },
+    onClick = { resetSession(),
     modifier = Modifier.fillMaxWidth()
 ) {
     Text("Reset")
